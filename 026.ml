@@ -1,5 +1,5 @@
-let max = 10000  in
-let d = Array.make (max+1) 0 in
+let max = 100000  ;;
+let d = Array.make (max+1) 0 ;;
 
 let process n =
   for i=0 to max do
@@ -11,64 +11,81 @@ let process n =
     rem := (10 * !rem) mod n ;
     d.(!cur) <- div ;
     incr cur ;    
-  done in
+  done ;;
+
+let find_end () =
+  let cur = ref max in
+  while (!cur > 0 && d.(!cur) = 0) do
+    decr cur ;
+  done ;
+  !cur ;;
 
 let disp () =
+  let cur_max = find_end() in
+
   Printf.printf "\n0." ;
-  for i=0 to max do
-    Printf.printf "%d" d.(i) ;
+  let i = ref 0 in
+  while (!i <= cur_max) do
+    Printf.printf "%d" d.(!i) ;
+    incr i;
   done;
+  print_newline();
   flush stdout
-in
+;;
 
-let check_rep start rep = 
-  let ok = ref true and id = ref true in
-  for i=0 to rep do
-    if (start + i + rep > max) then ok := !ok && false
-    else (
-      ok := !ok && (d.(start+i) == d.(start+i+rep));
-      id := !id && d.(start+i) = d.(start) && d.(start+i+rep) = d.(start) ;
-    );
-  done ;
-  !ok && (not !id) in
-let maxLen = ref 0 and maxN = ref 0 in
-for i=2 to 1000 do 
+let check start rep =
+  let ans = ref true and i = ref 0 and j = ref 0 in
+  while(!ans && !j < rep) do
+    i := 0 ;
+    while (!ans && (start+ !i*rep + !j) < max-1) do
+      ans := !ans && (d.(start + !j) = d.(start + !i*rep + !j)) ;
+      incr i ;
+    done ;
+    incr j;
+  done;      
+  !ans;
+;;
+
+
+let test_rep () =
+  let ans = ref false and start = ref 0
+  and cycle = ref 0 and cur_max = find_end() in
+  if (cur_max = max - 1) then (
+    (*ans := true;*)
+    let found_cycle = ref false and starter = ref 0
+    and num_cycles = ref 1 in
+    while (not !found_cycle && !starter < 500) do
+      while( not !found_cycle && !num_cycles < 10000) do
+        found_cycle := (check !starter !num_cycles);
+        if (not !found_cycle) then
+          incr num_cycles
+        else begin          
+          cycle := !num_cycles ;
+          ans := true;
+          start := !starter ;
+        end;
+(*        Printf.printf "s:%d c:%d\n" !starter !num_cycles;
+          flush stdout ; *)
+      done;
+      incr starter ;
+      num_cycles := 1 ;
+    done ;
+  );
+  (!start, !cycle, !ans) ;
+;;
+
+let maxCycle = ref 0 and maxStart = ref 0 and maxI = ref 0 in 
+for i=2 to 1000 do
   process i ;
-
-  for k=0 to 10 do
-    let j = ref 2 and b = ref false in
-    while (!j < max/(k+1) && not !b) do
-     (* for j=2 to max/(k+1) do*)
-      let a = check_rep k !j in
-      b := a ;
-      if (a && !j > 10) then (
-       
-        (*  disp();
-        Printf.printf "\n1/%d -> k= %d rep= %d\n" i k !j ;
-        *)
-        if (!maxLen < !j) then (
-          maxLen := !j ;
-          maxN := i ;
-        );
-         Printf.printf "\ri=%d (maxLen %d maxN %d)" i !maxLen !maxN ;  flush stdout ;
-      );
-      incr j;
-    done ;
+  let (start, cycle, is_cycle) = test_rep() in
+  if (is_cycle) then begin
+    Printf.printf "i: %d -> %d %d %b\n" i start cycle is_cycle ;
+    flush stdout ;
+    if (cycle > !maxCycle) then(
+      maxCycle := cycle;
+      maxStart := start;
+      maxI := i;
+    );
+  end;
 done;
-(*  for k=999 downto 0 do
-    let j=  and curLen = ref false in
-    while (!j >= 0 && not !curLen) do
-      (*for j=2 to 1000 do*)
-      curLen := (check_rep k !j);
-(*     Printf.printf "\ncheck rep %d %d = %b" k j curLen ;
-       flush stdout ;*)
-      if (!curLen && !j > !maxLen) then (
-        maxLen := !j ;
-        maxN := i ;
-      );
-      decr j;
-    done ;
-  done ; *)
-done;
-Printf.printf "Max rep = %d for n=%d\n" !maxLen !maxN ;
-flush stdout ;;
+Printf.printf ">> Max # Cycles: %d for 1/%d d=%d  start: %d\n" !maxCycle !maxI !maxI !maxStart ;;
